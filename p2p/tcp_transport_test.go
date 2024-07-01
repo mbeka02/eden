@@ -10,4 +10,9 @@ func TestTCPTransport(t *testing.T) {
 	listenAddr := ":8080"
 	transport := NewTCPTransport(listenAddr)
 	assert.Equal(t, transport.listenAddr, listenAddr)
+
+	//server
+	err := transport.ListenAndAccept()
+	assert.NoError(t, err)
+
 }
