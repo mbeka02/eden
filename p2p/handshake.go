@@ -2,4 +2,8 @@ package p2p
 
 //
 
-type HandshakeFn func(any) error
+type HandshakeFn func(Peer) error
+
+func DefaultHandshakeFn(Peer) error {
+	return nil
+}
