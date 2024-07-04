@@ -10,7 +10,12 @@ import (
 func main() {
 	//using the channel for blocking
 	testChannel := make(chan string)
-	transport := p2p.NewTCPTransport(":5173")
+	opts := p2p.TCPTransportOpts{
+		ListenAddr:  ":5173",
+		Decoder:     p2p.GOBDecoder{},
+		HandshakeFn: p2p.DefaultHandshakeFn,
+	}
+	transport := p2p.NewTCPTransport(opts)
 	fmt.Println("....starting")
 
 	if err := transport.ListenAndAccept(); err != nil {
