@@ -27,7 +27,6 @@ type TCPPeer struct {
 	//if we accept and retreive => false
 	outboundPeer bool
 }
-type Temp struct{}
 
 func NewTCPPeer(conn net.Conn, outboundPeer bool) *TCPPeer {
 	return &TCPPeer{
@@ -65,8 +64,6 @@ func (tr *TCPTransport) startAcceptLoop() {
 	}
 }
 
-// TO DO
-
 func (tr *TCPTransport) handleConnection(conn net.Conn) {
 
 	peer := NewTCPPeer(conn, true)
@@ -78,14 +75,18 @@ func (tr *TCPTransport) handleConnection(conn net.Conn) {
 	}
 	fmt.Printf(" New connection : %+v\n", peer)
 
-	msg := &Temp{}
+	//buff := make([]byte, 1024)
+
 	//Read loop
+	msg := &Message{}
 	for {
-		err = tr.Decoder.Decode(conn, msg)
+		err := tr.Decoder.Decode(conn, msg)
+		//n, err := conn.Read(buff)
 		if err != nil {
 
 			fmt.Printf("tcp error , unable to read incoming data : %v\n", err)
 			continue
 		}
+		fmt.Printf("message=>%v\n", string(msg.Payload))
 	}
 }
