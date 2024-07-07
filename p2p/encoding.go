@@ -6,20 +6,19 @@ import (
 )
 
 type Decoder interface {
-	//temp fix
 	Decode(io.Reader, *Message) error
 }
 
 type GOBDecoder struct {
 }
-type NOPDecoder struct {
+type DefaultDecoder struct {
 }
 
-func (dec GOBDecoder) Decode(r io.Reader, v any) error {
-	return gob.NewDecoder(r).Decode(v)
+func (dec GOBDecoder) Decode(r io.Reader, msg *Message) error {
+	return gob.NewDecoder(r).Decode(msg)
 }
 
-func (dec NOPDecoder) Decode(r io.Reader, msg *Message) error {
+func (dec DefaultDecoder) Decode(r io.Reader, msg *Message) error {
 	buff := make([]byte, 1024)
 	n, err := r.Read(buff)
 	if err != nil {

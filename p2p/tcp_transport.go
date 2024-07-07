@@ -87,6 +87,7 @@ func (tr *TCPTransport) handleConnection(conn net.Conn) {
 			fmt.Printf("tcp error , unable to read incoming data : %v\n", err)
 			continue
 		}
-		fmt.Printf("message=>%v\n", string(msg.Payload))
+		msg.From = conn.RemoteAddr()
+		fmt.Printf("message=>%v\n", msg.Payload)
 	}
 }

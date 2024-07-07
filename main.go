@@ -11,7 +11,7 @@ func main() {
 	blockingChannel := make(chan string)
 	opts := p2p.TCPTransportOpts{
 		ListenAddr:  ":5173",
-		Decoder:     p2p.NOPDecoder{},
+		Decoder:     p2p.DefaultDecoder{},
 		HandshakeFn: p2p.DefaultHandshakeFn,
 	}
 	transport := p2p.NewTCPTransport(opts)
