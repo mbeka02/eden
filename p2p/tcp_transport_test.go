@@ -7,9 +7,14 @@ import (
 )
 
 func TestTCPTransport(t *testing.T) {
-	listenAddr := ":8080"
-	transport := NewTCPTransport(listenAddr)
-	assert.Equal(t, transport.listenAddr, listenAddr)
+	opts := TCPTransportOpts{
+		ListenAddr:  ":5173",
+		Decoder:     DefaultDecoder{},
+		HandshakeFn: DefaultHandshakeFn,
+	}
+	transport := NewTCPTransport(opts)
+	assert.Equal(t, transport.ListenAddr, opts.ListenAddr)
+	//assert.Equal(t, transport.Decoder, opts.Decoder)
 
 	//server
 	err := transport.ListenAndAccept()

@@ -2,6 +2,7 @@ package p2p
 
 /*Peer represents the remote node*/
 type Peer interface {
+	Close() error
 }
 
 /*
@@ -11,4 +12,5 @@ It can be TCP , UDP , web sockets etc
 */
 type Transport interface {
 	ListenAndAccept() error
+	Consume() <-chan RPC
 }
