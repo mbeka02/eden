@@ -9,10 +9,12 @@ import (
 
 func TestTransformFunc(t *testing.T) {
 	key := "mySuperDuperPrivateKey"
-	pathname := CASTransFunc(key)
-	assert.NotEmpty(t, pathname)
-	expectedPathname := "0b0fb/7591d/e0608/9559f/2dcaa/c7051/76c90/ecf00"
-	assert.Equal(t, expectedPathname, pathname)
+	pathKey := CASTransFunc(key)
+	assert.NotEmpty(t, pathKey)
+	expectedOriginalKey := "0b0fb7591de06089559f2dcaac705176c90ecf00"
+	expectedPathName := "0b0fb/7591d/e0608/9559f/2dcaa/c7051/76c90/ecf00"
+	assert.Equal(t, expectedPathName, pathKey.PathName)
+	assert.Equal(t, expectedOriginalKey, pathKey.Original)
 }
 func TestStore(t *testing.T) {
 	opts := storeOpts{
