@@ -2,13 +2,14 @@ package main
 
 import (
 	"bytes"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
+	"io"
+	"testing"
 )
 
+var key = "mySuperDuperPrivateKey"
+
 func TestTransformFunc(t *testing.T) {
-	key := "mySuperDuperPrivateKey"
 	pathKey := CASTransFunc(key)
 	assert.NotEmpty(t, pathKey)
 	expectedFilename := "0b0fb7591de06089559f2dcaac705176c90ecf00"
@@ -22,7 +23,15 @@ func TestStore(t *testing.T) {
 	}
 	store := newStore(opts)
 	assert.NotNil(t, store)
-	data := bytes.NewReader([]byte("random bytes"))
-	err := store.WriteStream("pics", data)
+
+	data := []byte("random bytes")
+	err := store.WriteStream(key, bytes.NewReader(data))
 	assert.NoError(t, err)
+
+	r, err := store.Read(key)
+
+	assert.NoError(t, err)
+	b, _ := io.ReadAll(r)
+	assert.Equal(t, data, b)
+
 }

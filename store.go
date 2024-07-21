@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
@@ -78,11 +79,20 @@ func (s *store) WriteStream(key string, r io.Reader) error {
 }
 
 // refactor
-func (s *store) ReadStream(key string) (io.Reader, error) {
+func (s *store) ReadStream(key string) (io.ReadCloser, error) {
 	pathKey := s.pathTransformFunc(key)
-	f, err := os.Open(pathKey.FullPath())
+	return os.Open(pathKey.FullPath())
+}
+
+func (s *store) Read(key string) (io.Reader, error) {
+	f, err := s.ReadStream(key)
 	if err != nil {
 		return nil, err
 	}
-	return f, nil
+	defer f.Close()
+	buff := new(bytes.Buffer)
+	_, err = io.Copy(buff, f)
+	return buff, err
 }
+
+func (s *store) Write(key string) {}
