@@ -114,8 +114,8 @@ func (s *store) Write(key string) {}
 
 func (s *store) Delete(key string) error {
 	pathKey := s.pathTransformFunc(key)
-	pathnames := strings.Split(pathKey.PathName, "/")
-	firstPathName := pathnames[0]
+	pathNames := strings.Split(pathKey.PathName, "/")
+	firstPathName := pathNames[0]
 	firstPathNameWithRoot := fmt.Sprintf("%s/%s", s.root, firstPathName)
 	defer func() {
 		fmt.Printf("deleted %s from disk", pathKey.Filename)

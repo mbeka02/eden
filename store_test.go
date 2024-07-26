@@ -24,19 +24,18 @@ func TestStore(t *testing.T) {
 	store := newStore(opts)
 	assert.NotNil(t, store)
 
-	//Writing
 	data := []byte("random bytes")
 	err := store.WriteStream(key, bytes.NewReader(data))
 	assert.NoError(t, err)
 
-	//Reading
-	r, err := store.Read(key)
+	ok := store.Has(key)
+	assert.True(t, ok)
 
+	r, err := store.Read(key)
 	assert.NoError(t, err)
 	b, _ := io.ReadAll(r)
 	assert.Equal(t, data, b)
 
-	//Deleting
 	err = store.Delete(key)
 	assert.NoError(t, err)
 }
