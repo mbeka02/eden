@@ -66,7 +66,7 @@ func newStore(opts storeOpts) *store {
 	return &store{storeOpts: opts}
 }
 
-func (s *store) WriteStream(key string, r io.Reader) error {
+func (s *store) writeStream(key string, r io.Reader) error {
 	// transform key
 	pathKey := s.pathTransformFunc(key)
 	pathNameWithRoot := fmt.Sprintf("%s/%s", s.root, pathKey.PathName)
@@ -74,8 +74,6 @@ func (s *store) WriteStream(key string, r io.Reader) error {
 		return err
 	}
 
-	//fileNameBytes := md5.Sum(buff.Bytes())
-	//fileName := hex.EncodeToString(fileNameBytes[:])
 	fullPath := pathKey.FullPath()
 	fullPathWithRoot := fmt.Sprintf("%s/%s", s.root, fullPath)
 	//create file
@@ -92,15 +90,16 @@ func (s *store) WriteStream(key string, r io.Reader) error {
 	return nil
 }
 
-func (s *store) ReadStream(key string) (io.ReadCloser, error) {
+func (s *store) readStream(key string) (io.ReadCloser, error) {
 	pathKey := s.pathTransformFunc(key)
 	fullPathWithRoot := fmt.Sprintf("%s/%s", s.root, pathKey.FullPath())
 
 	return os.Open(fullPathWithRoot)
 }
 
+// Read() is a wrapper fn for readStream
 func (s *store) Read(key string) (io.Reader, error) {
-	f, err := s.ReadStream(key)
+	f, err := s.readStream(key)
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +107,11 @@ func (s *store) Read(key string) (io.Reader, error) {
 	buff := new(bytes.Buffer)
 	_, err = io.Copy(buff, f)
 	return buff, err
+}
+
+// Write() is a wrapper fn for writeStream
+func (s *store) Write(key string, r io.Reader) error {
+	return s.writeStream(key, r)
 }
 
 func (s *store) Delete(key string) error {
@@ -126,10 +130,8 @@ func (s *store) Has(key string) bool {
 	pathKey := s.pathTransformFunc(key)
 	fullPathWithRoot := fmt.Sprintf("%s/%s", s.root, pathKey.FullPath())
 	_, err := os.Stat(fullPathWithRoot)
-	if errors.Is(err, os.ErrNotExist) {
-		return false
-	}
-	return true
+	return !errors.Is(err, os.ErrNotExist)
+
 }
 
 // clear everything including the root folder
