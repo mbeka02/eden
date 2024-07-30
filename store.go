@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-const defaultRootFolderName = "mbekz"
+const defaultRootFolderName = "root"
 
 type pathTransformFunc func(string) PathKey
 type storeOpts struct {
@@ -110,8 +110,6 @@ func (s *store) Read(key string) (io.Reader, error) {
 	return buff, err
 }
 
-func (s *store) Write(key string) {}
-
 func (s *store) Delete(key string) error {
 	pathKey := s.pathTransformFunc(key)
 	pathNames := strings.Split(pathKey.PathName, "/")
@@ -132,4 +130,9 @@ func (s *store) Has(key string) bool {
 		return false
 	}
 	return true
+}
+
+// clear everything including the root folder
+func (s *store) Clear() error {
+	return os.RemoveAll(s.root)
 }

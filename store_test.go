@@ -9,6 +9,16 @@ import (
 
 var key = "mySuperDuperPrivateKey"
 
+func newstore() *store {
+	opts := storeOpts{
+		pathTransformFunc: CASTransFunc,
+	}
+	return newStore(opts)
+
+}
+func teardown(t *testing.T, s *store) {
+
+}
 func TestTransformFunc(t *testing.T) {
 	pathKey := CASTransFunc(key)
 	assert.NotEmpty(t, pathKey)
@@ -17,12 +27,19 @@ func TestTransformFunc(t *testing.T) {
 	assert.Equal(t, expectedPathName, pathKey.PathName)
 	assert.Equal(t, expectedFilename, pathKey.Filename)
 }
+func TestDeleteKey(t *testing.T) {
+	store := newstore()
+
+	data := []byte("random bytes")
+	err := store.WriteStream(key, bytes.NewReader(data))
+	assert.NoError(t, err)
+
+	err = store.Delete(key)
+	assert.NoError(t, err)
+
+}
 func TestStore(t *testing.T) {
-	opts := storeOpts{
-		pathTransformFunc: CASTransFunc,
-	}
-	store := newStore(opts)
-	assert.NotNil(t, store)
+	store := newstore()
 
 	data := []byte("random bytes")
 	err := store.WriteStream(key, bytes.NewReader(data))
@@ -37,5 +54,8 @@ func TestStore(t *testing.T) {
 	assert.Equal(t, data, b)
 
 	err = store.Delete(key)
+	assert.NoError(t, err)
+
+	err = store.Clear()
 	assert.NoError(t, err)
 }
