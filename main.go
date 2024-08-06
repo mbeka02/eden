@@ -4,46 +4,12 @@ import (
 	"log"
 
 	"github.com/mbeka02/eden/p2p"
+	//"time"
 )
 
-//	"fmt"
-//
-// "log"
-// "github.com/mbeka02/eden/p2p"
-
-/*func OnPeer(peer p2p.Peer) error {
-	peer.Close()
-	fmt.Println("....on peer logic")
-	return nil
-}
-
-func main() {
-	blockingChannel := make(chan string)
-	opts := p2p.TCPTransportOpts{
-		ListenAddr:  ":5173",
-		Decoder:     p2p.DefaultDecoder{},
-		HandshakeFn: p2p.DefaultHandshakeFn,
-		OnPeer:      OnPeer,
-	}
-	transport := p2p.NewTCPTransport(opts)
-	fmt.Println("....starting service")
-
-	go func() {
-		for {
-			msg := <-transport.Consume()
-			fmt.Printf("message=>%v\n", msg)
-		}
-	}()
-
-	if err := transport.ListenAndAccept(); err != nil {
-		log.Fatal(err)
-	}
-	<-blockingChannel
-}*/
-
-func main() {
+func makeServer(listenAddr string, nodes ...string) *FileServer {
 	transportOpts := p2p.TCPTransportOpts{
-		ListenAddr:  ":3000",
+		ListenAddr:  listenAddr,
 		Decoder:     p2p.DefaultDecoder{},
 		HandshakeFn: p2p.DefaultHandshakeFn,
 		//TO DO
@@ -51,13 +17,24 @@ func main() {
 	}
 	TCPTransport := p2p.NewTCPTransport(transportOpts)
 	opts := FileServerOpts{
-		StorageRoot:       "home",
+		StorageRoot:       listenAddr + "_network",
 		PathTransformFunc: CASTransFunc,
 		Transport:         TCPTransport,
+		BootStrapNodes:    nodes,
 	}
-	fileServer := NewServer(opts)
+	return NewServer(opts)
+}
+func main() {
+	nodes := []string{"172.0.0.1:3001", "172.0.0.1:3002", "172.0.0.1:3003", "172.0.0.1:3004"}
+	fileServer := makeServer(":3000", nodes...)
+	//test
+	/*	go func() {
+		time.Sleep(time.Second * 5)
+		fileServer.Stop()
+	}()*/
+
 	if err := fileServer.Run(); err != nil {
 		log.Fatalf("Unable to run the server : %v", err)
 	}
-	select {}
+
 }

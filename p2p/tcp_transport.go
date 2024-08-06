@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -67,26 +68,43 @@ messages received from another peer on the network
 */
 func (tr *TCPTransport) Consume() <-chan RPC {
 
-	fmt.Printf("message=>%v\n", <-tr.rpcChan)
 	return tr.rpcChan
 
+}
+
+// Close implements the transport interface
+func (tr *TCPTransport) Close() error {
+	return tr.listener.Close()
 }
 func (tr *TCPTransport) startAcceptLoop() {
 	for {
 		conn, err := tr.listener.Accept()
+		if errors.Is(err, net.ErrClosed) {
+			return
+		}
 		if err != nil {
 			fmt.Printf("TCP  accept() error : %s", err)
 		}
-		go tr.handleConnection(conn)
+		go tr.handleConnection(conn, false)
 	}
 }
-func (tr *TCPTransport) handleConnection(conn net.Conn) {
+
+// Dial implements the transport interface
+func (tr *TCPTransport) Dial(addr string) error {
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return err
+	}
+	go tr.handleConnection(conn, true)
+	return nil
+}
+func (tr *TCPTransport) handleConnection(conn net.Conn, outbound bool) {
 	var err error
 	defer func() {
 		fmt.Printf("dropping peer connection : %v\n", err)
 		conn.Close()
 	}()
-	peer := NewTCPPeer(conn, true)
+	peer := NewTCPPeer(conn, outbound)
 	err = tr.HandshakeFn(peer)
 	if err != nil {
 		return

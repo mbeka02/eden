@@ -2,7 +2,7 @@ package main
 
 import (
 	//"fmt"
-	//"log"
+	"log"
 	//"net/http"
 
 	"fmt"
@@ -15,11 +15,12 @@ type FileServerOpts struct {
 	StorageRoot       string
 	PathTransformFunc pathTransformFunc
 	Transport         p2p.Transport
+	BootStrapNodes    []string
 }
 type FileServer struct {
 	FileServerOpts               //config options
 	store          *store        //manages file storage on disk
-	quitCh         chan struct{} //signal channel
+	quitChannel    chan struct{} //signal channel
 }
 
 func NewServer(fileServerOptions FileServerOpts) *FileServer {
@@ -33,7 +34,21 @@ func NewServer(fileServerOptions FileServerOpts) *FileServer {
 	return &FileServer{
 		FileServerOpts: fileServerOptions,
 		store:          store,
-		quitCh:         make(chan struct{}),
+		quitChannel:    make(chan struct{}),
+	}
+}
+func (f *FileServer) BootstrapNetwork() {
+	for _, addr := range f.BootStrapNodes {
+
+		go func(addr string) {
+			if err := f.Transport.Dial(addr); err != nil {
+
+				log.Printf("dial error : %v", err)
+
+			}
+
+		}(addr)
+
 	}
 }
 
@@ -42,23 +57,29 @@ func (f *FileServer) Run() error {
 	if err := f.Transport.ListenAndAccept(); err != nil {
 		return err
 	}
+	f.BootstrapNetwork()
+	f.Loop()
 	return nil
 }
 
 func (f *FileServer) Loop() {
+	defer func() {
+		log.Println("...exiting")
+		f.Transport.Close()
+	}()
 
 	for {
 		select {
 		case msg := <-f.Transport.Consume():
-			fmt.Printf("Msg=>%v", msg)
+			fmt.Printf("Msg=>%v\n", msg)
 
-		case <-f.quitCh:
+		case <-f.quitChannel:
 			return
 		}
 	}
 }
 func (f *FileServer) Stop() {
-	close(f.quitCh)
+	close(f.quitChannel)
 }
 
 // cmds
