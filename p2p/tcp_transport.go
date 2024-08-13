@@ -44,11 +44,22 @@ func NewTCPTransport(opts TCPTransportOpts) *TCPTransport {
 	}
 }
 
-// close implements the Peer interface
+// Close implements the Peer interface
 func (p *TCPPeer) Close() error {
 	return p.conn.Close()
 }
 
+// RemoteAddr implements the Peer interface and will return the
+// remote addr of its underlying connection
+func (p *TCPPeer) RemoteAddr() net.Addr {
+	return p.conn.RemoteAddr()
+}
+
+// Send implements the Peer interface
+func (p *TCPPeer) Send(b []byte) error {
+	_, err := p.conn.Write(b)
+	return err
+}
 func (tr *TCPTransport) ListenAndAccept() error {
 	var err error
 	tr.listener, err = net.Listen("tcp", tr.ListenAddr)
@@ -115,7 +126,6 @@ func (tr *TCPTransport) handleConnection(conn net.Conn, outbound bool) {
 		}
 
 	}
-	fmt.Printf(" New connection : %+v\n", peer)
 
 	//Read loop
 	rpc := RPC{}

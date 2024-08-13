@@ -2,7 +2,10 @@ package main
 
 import (
 	//"fmt"
+	"io"
 	"log"
+	"sync"
+
 	//"net/http"
 
 	"fmt"
@@ -21,6 +24,15 @@ type FileServer struct {
 	FileServerOpts               //config options
 	store          *store        //manages file storage on disk
 	quitChannel    chan struct{} //signal channel
+
+	peerLock sync.Mutex
+
+	peers map[string]p2p.Peer
+}
+
+type Payload struct {
+	key  string
+	data []byte
 }
 
 func NewServer(fileServerOptions FileServerOpts) *FileServer {
@@ -35,12 +47,25 @@ func NewServer(fileServerOptions FileServerOpts) *FileServer {
 		FileServerOpts: fileServerOptions,
 		store:          store,
 		quitChannel:    make(chan struct{}),
+
+		peers: make(map[string]p2p.Peer),
 	}
 }
+
+// TODO
+func (f *FileServer) broadcast(p *Payload) error {
+
+	return nil
+}
+
 func (f *FileServer) BootstrapNetwork() {
 	for _, addr := range f.BootStrapNodes {
+		if len(addr) == 0 {
+			continue
+		}
 
 		go func(addr string) {
+			fmt.Println("attempting to connect with remote:", addr)
 			if err := f.Transport.Dial(addr); err != nil {
 
 				log.Printf("dial error : %v", err)
@@ -81,6 +106,13 @@ func (f *FileServer) Loop() {
 func (f *FileServer) Stop() {
 	close(f.quitChannel)
 }
+func (f *FileServer) OnPeer(p p2p.Peer) error {
+	f.peerLock.Lock()
+	defer f.peerLock.Unlock()
+	f.peers[p.RemoteAddr().String()] = p
+	log.Printf("connected with remote=> %s", p.RemoteAddr())
+	return nil
+}
 
 // cmds
 /*func (f *FileServer) Store(key string, r io.Reader) error {
@@ -88,3 +120,9 @@ func (f *FileServer) Stop() {
 	return f.store.Write(key, r)
 
 }*/
+func (f *FileServer) StoreData(key string, r io.Reader) error {
+	//TODOS
+	//1.store the data on disk.
+	//2.broadcast data to all known peers
+	return nil
+}
