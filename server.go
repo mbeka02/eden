@@ -2,6 +2,8 @@ package main
 
 import (
 	//"fmt"
+	"bytes"
+	"encoding/gob"
 	"io"
 	"log"
 	"sync"
@@ -54,8 +56,13 @@ func NewServer(fileServerOptions FileServerOpts) *FileServer {
 
 // TODO
 func (f *FileServer) broadcast(p *Payload) error {
+	peers := []io.Writer{}
 
-	return nil
+	for _, peer := range f.peers {
+		peers = append(peers, peer)
+	}
+	mw := io.MultiWriter(peers...)
+	return gob.NewEncoder(mw).Encode(p)
 }
 
 func (f *FileServer) BootstrapNetwork() {
@@ -121,8 +128,17 @@ func (f *FileServer) OnPeer(p p2p.Peer) error {
 
 }*/
 func (f *FileServer) StoreData(key string, r io.Reader) error {
-	//TODOS
-	//1.store the data on disk.
-	//2.broadcast data to all known peers
-	return nil
+	if err := f.store.Write(key, r); err != nil {
+		return err
+	}
+	buff := new(bytes.Buffer)
+	if _, err := io.Copy(buff, r); err != nil {
+		return err
+	}
+	fmt.Println("bytes=>", buff.Bytes())
+	payload := &Payload{
+		data: buff.Bytes(),
+		key:  key,
+	}
+	return f.broadcast(payload)
 }

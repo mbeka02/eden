@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"log"
+	"time"
 
 	"github.com/mbeka02/eden/p2p"
 	//"time"
@@ -13,8 +14,6 @@ func makeServer(listenAddr string, nodes ...string) *FileServer {
 		ListenAddr:  listenAddr,
 		Decoder:     p2p.DefaultDecoder{},
 		HandshakeFn: p2p.DefaultHandshakeFn,
-		//TO DO
-		//	OnPeer: func(p2p.Peer) error { return nil },
 	}
 	TCPTransport := p2p.NewTCPTransport(transportOpts)
 	opts := FileServerOpts{
@@ -29,22 +28,13 @@ func makeServer(listenAddr string, nodes ...string) *FileServer {
 	return server
 }
 func main() {
-	//	nodes := []string{"172.0.0.1:3001", "172.0.0.1:3002", "172.0.0.1:3003", "172.0.0.1:3004"}
 	fileServer1 := makeServer(":3000", "")
 	fileServer2 := makeServer(":4000", "127.0.0.1:3000")
-	//test
-	/*	go func() {
-		time.Sleep(time.Second * 5)
-		fileServer.Stop()
-	}()*/
-
-	/*if err := fileServer.Run(); err != nil {
-		log.Fatalf("Unable to run the server : %v", err)
-	}*/
 	go func() {
 		log.Fatal(fileServer1.Run())
 	}()
-	fileServer2.Run()
+	go fileServer2.Run()
+	time.Sleep(time.Second * 3)
 	data := bytes.NewReader([]byte("some random data"))
 	fileServer2.StoreData("tt", data)
 }
