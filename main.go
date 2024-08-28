@@ -33,8 +33,13 @@ func main() {
 	go func() {
 		log.Fatal(fileServer1.Run())
 	}()
+	time.Sleep(time.Second * 1)
+
 	go fileServer2.Run()
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 1)
+
 	data := bytes.NewReader([]byte("some random data"))
-	fileServer2.StoreData("tt", data)
+	fileServer2.StoreData("myprivateData", data)
+	//block
+	select {}
 }

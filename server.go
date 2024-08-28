@@ -23,7 +23,7 @@ type FileServerOpts struct {
 	BootStrapNodes    []string
 }
 type FileServer struct {
-	FileServerOpts               //config options
+	FileServerOpts               // file server config options
 	store          *store        //manages file storage on disk
 	quitChannel    chan struct{} //signal channel
 
@@ -33,8 +33,8 @@ type FileServer struct {
 }
 
 type Payload struct {
-	key  string
-	data []byte
+	Key  string
+	Data []byte
 }
 
 func NewServer(fileServerOptions FileServerOpts) *FileServer {
@@ -103,7 +103,12 @@ func (f *FileServer) Loop() {
 	for {
 		select {
 		case msg := <-f.Transport.Consume():
-			fmt.Printf("Msg=>%v\n", msg)
+			var p Payload
+
+			if err := gob.NewDecoder(bytes.NewReader(msg.Payload)).Decode(&p); err != nil {
+				log.Fatalf("exiting here=>%v", err)
+			}
+			fmt.Printf("Msg=>%+v\n", p)
 
 		case <-f.quitChannel:
 			return
@@ -116,17 +121,12 @@ func (f *FileServer) Stop() {
 func (f *FileServer) OnPeer(p p2p.Peer) error {
 	f.peerLock.Lock()
 	defer f.peerLock.Unlock()
+	//add peer to the map
 	f.peers[p.RemoteAddr().String()] = p
 	log.Printf("connected with remote=> %s", p.RemoteAddr())
 	return nil
 }
 
-// cmds
-/*func (f *FileServer) Store(key string, r io.Reader) error {
-
-	return f.store.Write(key, r)
-
-}*/
 func (f *FileServer) StoreData(key string, r io.Reader) error {
 	if err := f.store.Write(key, r); err != nil {
 		return err
@@ -135,10 +135,11 @@ func (f *FileServer) StoreData(key string, r io.Reader) error {
 	if _, err := io.Copy(buff, r); err != nil {
 		return err
 	}
-	fmt.Println("bytes=>", buff.Bytes())
 	payload := &Payload{
-		data: buff.Bytes(),
-		key:  key,
+
+		Key:  key,
+		Data: buff.Bytes(),
 	}
+	//broadcast the payload to all other remote peers
 	return f.broadcast(payload)
 }
