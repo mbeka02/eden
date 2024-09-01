@@ -128,11 +128,11 @@ func (f *FileServer) OnPeer(p p2p.Peer) error {
 }
 
 func (f *FileServer) StoreData(key string, r io.Reader) error {
-	if err := f.store.Write(key, r); err != nil {
-		return err
-	}
+
 	buff := new(bytes.Buffer)
-	if _, err := io.Copy(buff, r); err != nil {
+	teeReader := io.TeeReader(r, buff)
+
+	if err := f.store.Write(key, teeReader); err != nil {
 		return err
 	}
 	payload := &Payload{
