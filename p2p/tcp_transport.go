@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 )
 
 type TCPTransportOpts struct {
@@ -27,12 +28,15 @@ type TCPPeer struct {
 	//if we dial and retreive a conn => true
 	//if we accept and retreive => false
 	outboundPeer bool
+	Wg           *sync.WaitGroup
 }
 
 func NewTCPPeer(Conn net.Conn, outboundPeer bool) *TCPPeer {
+	wg := &sync.WaitGroup{}
 	return &TCPPeer{
 		Conn,
 		outboundPeer,
+		wg,
 	}
 
 }
@@ -134,8 +138,11 @@ func (tr *TCPTransport) handleConnection(conn net.Conn, outbound bool) {
 			fmt.Printf("tcp  read error: %v\n", err)
 			continue
 		}
-		rpc.From = conn.RemoteAddr()
+		rpc.From = conn.RemoteAddr().String()
+		peer.Wg.Add(1)
+		fmt.Println("...streaming")
 		tr.rpcChan <- rpc
-
+		peer.Wg.Wait()
+		fmt.Println("...done streaming , resuming the normal read loop")
 	}
 }

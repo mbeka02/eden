@@ -33,7 +33,7 @@ func main() {
 	go func() {
 		log.Fatal(fileServer1.Run())
 	}()
-	time.Sleep(time.Second * 4)
+	time.Sleep(time.Second * 2)
 
 	go fileServer2.Run()
 	time.Sleep(time.Second * 2)
