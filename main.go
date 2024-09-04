@@ -36,10 +36,9 @@ func main() {
 	time.Sleep(time.Second * 2)
 
 	go fileServer2.Run()
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second * 4)
 
 	data := bytes.NewReader([]byte("some random data"))
 	fileServer2.StoreData("myprivateDataKey", data)
-	//block
 	select {}
 }
