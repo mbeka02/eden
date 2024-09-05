@@ -66,12 +66,12 @@ func newStore(opts storeOpts) *store {
 	return &store{storeOpts: opts}
 }
 
-func (s *store) writeStream(key string, r io.Reader) error {
+func (s *store) writeStream(key string, r io.Reader) (int64, error) {
 	// transform key
 	pathKey := s.pathTransformFunc(key)
 	pathNameWithRoot := fmt.Sprintf("%s/%s", s.root, pathKey.PathName)
 	if err := os.MkdirAll(pathNameWithRoot, os.ModePerm); err != nil {
-		return err
+		return 0, err
 	}
 
 	fullPath := pathKey.FullPath()
@@ -79,15 +79,15 @@ func (s *store) writeStream(key string, r io.Reader) error {
 	//create file
 	f, err := os.Create(fullPathWithRoot)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	//copy buffer content
 	n, err := io.Copy(f, r)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	log.Printf("Written (%d) bytes to disk in file : %s", n, fullPathWithRoot)
-	return nil
+	return n, nil
 }
 
 func (s *store) readStream(key string) (io.ReadCloser, error) {
@@ -110,7 +110,7 @@ func (s *store) Read(key string) (io.Reader, error) {
 }
 
 // Write() is a wrapper fn for writeStream
-func (s *store) Write(key string, r io.Reader) error {
+func (s *store) Write(key string, r io.Reader) (int64, error) {
 	return s.writeStream(key, r)
 }
 

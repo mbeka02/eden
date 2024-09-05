@@ -138,7 +138,7 @@ func (f *FileServer) handleMessageStoreFile(from string, msg MessageStoreFile) e
 		return fmt.Errorf("peer (%s) does not exist", from)
 	}
 
-	if err := f.store.Write(msg.Key, io.LimitReader(peer, msg.Size)); err != nil {
+	if _, err := f.store.Write(msg.Key, io.LimitReader(peer, msg.Size)); err != nil {
 		return err
 	}
 	peer.(*p2p.TCPPeer).Wg.Done()
@@ -158,28 +158,35 @@ func (f *FileServer) OnPeer(p p2p.Peer) error {
 	return nil
 }
 
-func (f *FileServer) StoreData(key string, r io.Reader) error {
-	buff := new(bytes.Buffer)
+// store file on disk then broadcast it to all the other nodes
 
+func (f *FileServer) StoreData(key string, r io.Reader) error {
+
+	buff := new(bytes.Buffer)
+	teeReader := io.TeeReader(r, buff)
+	size, err := f.store.Write(key, teeReader)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("bytes written=>%v\n", size)
 	msg := Message{Payload: MessageStoreFile{
-		Key: key,
-		// TO DO : don't hard code the value
-		Size: 13,
+		Key:  key,
+		Size: size,
 	}}
-	if err := gob.NewEncoder(buff).Encode(&msg); err != nil {
+	msgBuff := new(bytes.Buffer)
+	if err := gob.NewEncoder(msgBuff).Encode(&msg); err != nil {
 		fmt.Println(err)
 
 	}
 
 	for _, peer := range f.peers {
-		if err := peer.Send(buff.Bytes()); err != nil {
+		if err := peer.Send(msgBuff.Bytes()); err != nil {
 			fmt.Println("peer send error=>", err)
 		}
 	}
 	time.Sleep(time.Second * 2)
-	payload := []byte("LARGE PAYLOAD")
 	for _, peer := range f.peers {
-		n, err := io.Copy(peer, bytes.NewReader(payload))
+		n, err := io.Copy(peer, buff)
 
 		if err != nil {
 			return err
