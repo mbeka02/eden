@@ -115,7 +115,7 @@ func (f *FileServer) Loop() {
 			}
 			if err := f.handleMessage(rpc.From, &message); err != nil {
 
-				log.Printf("unable to handle the message:%v", err)
+				log.Println(err)
 
 			}
 		case <-f.quitChannel:
@@ -133,6 +133,7 @@ func (f *FileServer) handleMessage(from string, msg *Message) error {
 }
 
 func (f *FileServer) handleMessageStoreFile(from string, msg MessageStoreFile) error {
+	//check if the peer exists in the map
 	peer, ok := f.peers[from]
 	if !ok {
 		return fmt.Errorf("peer (%s) does not exist", from)
@@ -149,6 +150,7 @@ func (f *FileServer) handleMessageStoreFile(from string, msg MessageStoreFile) e
 func (f *FileServer) Stop() {
 	close(f.quitChannel)
 }
+
 func (f *FileServer) OnPeer(p p2p.Peer) error {
 	f.peerLock.Lock()
 	defer f.peerLock.Unlock()
@@ -158,12 +160,11 @@ func (f *FileServer) OnPeer(p p2p.Peer) error {
 	return nil
 }
 
-// store file on disk then broadcast it to all the other nodes
-
+// StoreData stores the file on disk then broadcasts it to all the other nodes
 func (f *FileServer) StoreData(key string, r io.Reader) error {
 
-	buff := new(bytes.Buffer)
-	teeReader := io.TeeReader(r, buff)
+	fileBuffer := new(bytes.Buffer)
+	teeReader := io.TeeReader(r, fileBuffer)
 	size, err := f.store.Write(key, teeReader)
 	if err != nil {
 		return err
@@ -173,43 +174,26 @@ func (f *FileServer) StoreData(key string, r io.Reader) error {
 		Key:  key,
 		Size: size,
 	}}
-	msgBuff := new(bytes.Buffer)
-	if err := gob.NewEncoder(msgBuff).Encode(&msg); err != nil {
+	messageBuffer := new(bytes.Buffer)
+	if err := gob.NewEncoder(messageBuffer).Encode(&msg); err != nil {
 		fmt.Println(err)
 
 	}
 
 	for _, peer := range f.peers {
-		if err := peer.Send(msgBuff.Bytes()); err != nil {
+		if err := peer.Send(messageBuffer.Bytes()); err != nil {
 			fmt.Println("peer send error=>", err)
 		}
 	}
 	time.Sleep(time.Second * 2)
 	for _, peer := range f.peers {
-		n, err := io.Copy(peer, buff)
+		n, err := io.Copy(peer, fileBuffer)
 
 		if err != nil {
 			return err
-			//	continue
 		}
 		fmt.Printf("received and written %v bytes to disk\n", n)
 	}
-	/*buff := new(bytes.Buffer)
-	teeReader := io.TeeReader(r, buff)
-
-	if err := f.store.Write(key, teeReader); err != nil {
-		return err
-	}
-	payload := &DataMessage{
-
-		Key:  key,
-		Data: buff.Bytes(),
-	}
-	//broadcast the payload to all other remote peers
-	return f.broadcast(&Message{
-		From:    "todo",
-		Payload: payload,
-	})*/
 	return nil
 }
 
