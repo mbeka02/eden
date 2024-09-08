@@ -36,7 +36,7 @@ func TestDeleteKey(t *testing.T) {
 	store := newstore()
 
 	data := []byte("random bytes")
-	err := store.writeStream(key, bytes.NewReader(data))
+	_, err := store.writeStream(key, bytes.NewReader(data))
 	assert.NoError(t, err)
 
 	err = store.Delete(key)
@@ -50,7 +50,7 @@ func TestStore(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		key := fmt.Sprintf("private key %d", i)
 		data := []byte("random bytes")
-		err := store.writeStream(key, bytes.NewReader(data))
+		_, err := store.writeStream(key, bytes.NewReader(data))
 		assert.NoError(t, err)
 
 		ok := store.Has(key)

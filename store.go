@@ -86,7 +86,6 @@ func (s *store) writeStream(key string, r io.Reader) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	log.Printf("Written (%d) bytes to disk in file : %s", n, fullPathWithRoot)
 	return n, nil
 }
 
@@ -120,7 +119,7 @@ func (s *store) Delete(key string) error {
 	firstPathName := pathNames[0]
 	firstPathNameWithRoot := fmt.Sprintf("%s/%s", s.root, firstPathName)
 	defer func() {
-		fmt.Printf("deleted %s from disk", pathKey.Filename)
+		fmt.Printf("deleted %s from disk\n", pathKey.Filename)
 	}()
 	return os.RemoveAll(firstPathNameWithRoot)
 

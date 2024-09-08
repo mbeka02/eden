@@ -139,9 +139,12 @@ func (f *FileServer) handleMessageStoreFile(from string, msg MessageStoreFile) e
 		return fmt.Errorf("peer (%s) does not exist", from)
 	}
 
-	if _, err := f.store.Write(msg.Key, io.LimitReader(peer, msg.Size)); err != nil {
+	n, err := f.store.Write(msg.Key, io.LimitReader(peer, msg.Size))
+	if err != nil {
 		return err
 	}
+	log.Printf("Written (%d) bytes to disk \n", n)
+
 	peer.(*p2p.TCPPeer).Wg.Done()
 
 	return nil
@@ -162,9 +165,11 @@ func (f *FileServer) OnPeer(p p2p.Peer) error {
 
 // StoreData stores the file on disk then broadcasts it to all the other nodes
 func (f *FileServer) StoreData(key string, r io.Reader) error {
+	var (
+		fileBuffer = new(bytes.Buffer)
+		teeReader  = io.TeeReader(r, fileBuffer)
+	)
 
-	fileBuffer := new(bytes.Buffer)
-	teeReader := io.TeeReader(r, fileBuffer)
 	size, err := f.store.Write(key, teeReader)
 	if err != nil {
 		return err
