@@ -60,14 +60,31 @@ func NewServer(fileServerOptions FileServerOpts) *FileServer {
 	}
 }
 
-func (f *FileServer) broadcast(msg *Message) error {
+func (f *FileServer) stream(msg *Message) error {
 	peers := []io.Writer{}
 
 	for _, peer := range f.peers {
 		peers = append(peers, peer)
 	}
+	//duplicate the write to all the writers/peers
 	mw := io.MultiWriter(peers...)
 	return gob.NewEncoder(mw).Encode(msg)
+}
+
+// broadcast() encodes and sends the message to all the peers
+func (f *FileServer) broadcast(msg *Message) error {
+	messageBuffer := new(bytes.Buffer)
+	if err := gob.NewEncoder(messageBuffer).Encode(msg); err != nil {
+		return err
+	}
+
+	for _, peer := range f.peers {
+		if err := peer.Send(messageBuffer.Bytes()); err != nil {
+			fmt.Println("peer send error=>", err)
+		}
+	}
+
+	return nil
 }
 
 func (f *FileServer) BootstrapNetwork() {
@@ -169,28 +186,22 @@ func (f *FileServer) StoreData(key string, r io.Reader) error {
 		fileBuffer = new(bytes.Buffer)
 		teeReader  = io.TeeReader(r, fileBuffer)
 	)
-
+	// store the file on disk (locally)
 	size, err := f.store.Write(key, teeReader)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("bytes written=>%v\n", size)
+
+	// send a store file message with the key and size
 	msg := Message{Payload: MessageStoreFile{
 		Key:  key,
 		Size: size,
 	}}
-	messageBuffer := new(bytes.Buffer)
-	if err := gob.NewEncoder(messageBuffer).Encode(&msg); err != nil {
-		fmt.Println(err)
+	f.broadcast(&msg)
 
-	}
-
-	for _, peer := range f.peers {
-		if err := peer.Send(messageBuffer.Bytes()); err != nil {
-			fmt.Println("peer send error=>", err)
-		}
-	}
 	time.Sleep(time.Second * 2)
+	// send and write the file to all the peers in the list
 	for _, peer := range f.peers {
 		n, err := io.Copy(peer, fileBuffer)
 

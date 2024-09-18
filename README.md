@@ -1,1 +1,1 @@
-Learning how to build a distributed file storage system.
+EDEN is a distributed file storage system written in Go.
