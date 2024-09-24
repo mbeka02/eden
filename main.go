@@ -2,11 +2,11 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"time"
 
 	"github.com/mbeka02/eden/p2p"
-	//"time"
 )
 
 func makeServer(listenAddr string, nodes ...string) *FileServer {
@@ -39,6 +39,20 @@ func main() {
 	time.Sleep(time.Second * 4)
 
 	data := bytes.NewReader([]byte("some random data"))
-	fileServer2.StoreData("myprivateDataKey", data)
+	fileServer2.Store("myprivateDataKey", data)
+	r, err := fileServer2.Get("myprivateDataKey")
+
+	if err != nil {
+		fmt.Println(err)
+	}
+	buff := make([]byte, 1024)
+	n, err := r.Read(buff)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+	content := buff[:n]
+	fmt.Println("buffer content=>", string(content))
+
 	select {}
 }

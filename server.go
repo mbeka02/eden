@@ -160,7 +160,7 @@ func (f *FileServer) handleMessageStoreFile(from string, msg MessageStoreFile) e
 	if err != nil {
 		return err
 	}
-	log.Printf("Written (%d) bytes to disk \n", n)
+	log.Printf("Written (%d) bytes to disk for : %s  \n", n, peer.LocalAddr().String())
 
 	peer.(*p2p.TCPPeer).Wg.Done()
 
@@ -180,8 +180,17 @@ func (f *FileServer) OnPeer(p p2p.Peer) error {
 	return nil
 }
 
-// StoreData stores the file on disk then broadcasts it to all the other nodes
-func (f *FileServer) StoreData(key string, r io.Reader) error {
+func (f *FileServer) Get(key string) (io.Reader, error) {
+	if f.store.Has(key) {
+		return f.store.Read(key)
+	}
+
+	panic("This file is not stored locally")
+
+}
+
+// This method stores the file on disk then broadcasts it to all the other nodes
+func (f *FileServer) Store(key string, r io.Reader) error {
 	var (
 		fileBuffer = new(bytes.Buffer)
 		teeReader  = io.TeeReader(r, fileBuffer)
@@ -193,23 +202,32 @@ func (f *FileServer) StoreData(key string, r io.Reader) error {
 	}
 	fmt.Printf("bytes written=>%v\n", size)
 
-	// send a store file message with the key and size
+	// broadcast a 'store file' message with the key and size of the payload
 	msg := Message{Payload: MessageStoreFile{
 		Key:  key,
 		Size: size,
 	}}
-	f.broadcast(&msg)
+	if err := f.broadcast(&msg); err != nil {
+		return err
+	}
 
 	time.Sleep(time.Second * 2)
 	// send and write the file to all the peers in the list
+	//TODO : use a MultiWriter
+
+	peers := []io.Writer{}
 	for _, peer := range f.peers {
-		n, err := io.Copy(peer, fileBuffer)
+		peers = append(peers, peer)
+		/*n, err := io.Copy(peer, fileBuffer)
 
 		if err != nil {
 			return err
 		}
 		fmt.Printf("received and written %v bytes to disk\n", n)
+		*/
 	}
+	mw := io.MultiWriter(peers...)
+	mw.Write(fileBuffer.Bytes())
 	return nil
 }
 
