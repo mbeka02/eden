@@ -42,6 +42,9 @@ type MessageStoreFile struct {
 	Key  string
 	Size int64 //file size
 }
+type MessageGetFile struct {
+	Key string
+}
 
 func NewServer(fileServerOptions FileServerOpts) *FileServer {
 
@@ -145,7 +148,33 @@ func (f *FileServer) handleMessage(from string, msg *Message) error {
 	switch v := msg.Payload.(type) {
 	case MessageStoreFile:
 		return f.handleMessageStoreFile(from, v)
+	case MessageGetFile:
+		return f.handleMessageGetFile(from, v)
+
 	}
+	return nil
+}
+
+func (f *FileServer) handleMessageGetFile(from string, msg MessageGetFile) error {
+
+	if !f.store.Has(msg.Key) {
+		fmt.Printf("file %s does not exist on disk\n", msg.Key)
+	}
+
+	r, err := f.store.Read(msg.Key)
+	if err != nil {
+		return err
+	}
+	//check if the peer exists in the map
+	peer, ok := f.peers[from]
+	if !ok {
+		return fmt.Errorf("peer (%s) does not exist", from)
+	}
+	n, err := io.Copy(peer, r)
+	if err != nil {
+		return err
+	}
+	log.Printf("written  %d bytes over the network to %s", n, from)
 	return nil
 }
 
@@ -185,8 +214,21 @@ func (f *FileServer) Get(key string) (io.Reader, error) {
 		return f.store.Read(key)
 	}
 
-	panic("This file is not stored locally")
+	fmt.Printf("%s is not stored locally, fetching from the network\n", key)
 
+	// try and retrieve the file from the other nodes
+	msg := Message{
+		Payload: MessageGetFile{
+			key,
+		},
+	}
+
+	err := f.broadcast(&msg)
+	if err != nil {
+		return nil, err
+	}
+	select {}
+	return nil, nil
 }
 
 // This method stores the file on disk then broadcasts it to all the other nodes
@@ -213,7 +255,6 @@ func (f *FileServer) Store(key string, r io.Reader) error {
 
 	time.Sleep(time.Second * 2)
 	// send and write the file to all the peers in the list
-	//TODO : use a MultiWriter
 
 	peers := []io.Writer{}
 	for _, peer := range f.peers {
@@ -233,4 +274,5 @@ func (f *FileServer) Store(key string, r io.Reader) error {
 
 func init() {
 	gob.Register(MessageStoreFile{})
+	gob.Register(MessageGetFile{})
 }
