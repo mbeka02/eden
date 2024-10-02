@@ -1,8 +1,7 @@
 package main
 
 import (
-	"fmt"
-	"io"
+	"bytes"
 	"log"
 	"time"
 
@@ -36,9 +35,8 @@ func main() {
 	time.Sleep(time.Second * 2)
 
 	go fileServer2.Run()
-	time.Sleep(time.Second * 4)
 
-	/*data := bytes.NewReader([]byte(`
+	data := bytes.NewReader([]byte(`
 	<!DOCTYPE html>
 	<html lang="en">
 	<head>
@@ -57,23 +55,24 @@ func main() {
 	<li>builders</li>
 	</ul>
 	<p>working together to keep the Internet alive and accessible, so people worldwide can be informed contributors and creators of the Web. We believe this act of human collaboration across an open platform is essential to individual growth and our collective future.</p>
-	<p>Read the <a href="https://www.mozilla.org/en-US/about/manifesto/">Mozilla Manifesto</a> to learn even more about the values and principles that guide the pursuit of our mission.</p>
-
 	</body>
 	</html>
-	  `))*/
+	  `))
+
+	fileServer1.Store("myprivateDataKey", data)
+	//	time.Sleep(time.Second * 2)
+
 	//	fileServer2.Store("myprivateDataKey", data)
-	r, err := fileServer2.Get("myprivateDataKey")
-
-	if err != nil {
-		log.Fatal(err)
-	}
-	b, err := io.ReadAll(r)
-
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println("buffer content=>", string(b))
-
+	// r, err := fileServer2.Get("myprivateDataKey")
+	//
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// b, err := io.ReadAll(r)
+	//
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+	// fmt.Println("buffer content=>", string(b))
 	select {}
 }

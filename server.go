@@ -121,7 +121,7 @@ func (f *FileServer) Run() error {
 
 func (f *FileServer) Loop() {
 	defer func() {
-		log.Println("...exiting")
+		log.Println("...stopping the file server")
 		f.Transport.Close()
 	}()
 
@@ -131,11 +131,11 @@ func (f *FileServer) Loop() {
 
 			var message Message
 			if err := gob.NewDecoder(bytes.NewReader(rpc.Payload)).Decode(&message); err != nil {
-				log.Printf("decoding error:%v\n", err)
+				log.Println("decoding error:", err)
 			}
 			if err := f.handleMessage(rpc.From, &message); err != nil {
 
-				log.Println(err)
+				log.Println("handle Message error:", err)
 
 			}
 		case <-f.quitChannel:
@@ -158,7 +158,7 @@ func (f *FileServer) handleMessage(from string, msg *Message) error {
 func (f *FileServer) handleMessageGetFile(from string, msg MessageGetFile) error {
 
 	if !f.store.Has(msg.Key) {
-		fmt.Printf("file %s does not exist on disk\n", msg.Key)
+		return fmt.Errorf(" need to serve file %s but it  does not exist on disk\n", msg.Key)
 	}
 
 	r, err := f.store.Read(msg.Key)
@@ -170,11 +170,11 @@ func (f *FileServer) handleMessageGetFile(from string, msg MessageGetFile) error
 	if !ok {
 		return fmt.Errorf("peer (%s) does not exist", from)
 	}
-	n, err := io.Copy(peer, r)
+	n, err := io.CopyN(peer, r, 1044)
 	if err != nil {
 		return err
 	}
-	log.Printf("written  %d bytes over the network to %s", n, from)
+	log.Printf("written (%d) bytes over the network to %s", n, from)
 	return nil
 }
 
@@ -219,7 +219,7 @@ func (f *FileServer) Get(key string) (io.Reader, error) {
 	// try and retrieve the file from the other nodes
 	msg := Message{
 		Payload: MessageGetFile{
-			key,
+			Key: key,
 		},
 	}
 
@@ -227,8 +227,22 @@ func (f *FileServer) Get(key string) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
+	time.Sleep(time.Second * 4)
+	//	select {}
+	for _, peer := range f.peers {
+		fmt.Println("INSIDE THE LOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOP")
+		fileBuffer := new(bytes.Buffer)
+		_, err := io.Copy(fileBuffer, peer)
+		fmt.Println("checkpoint 1")
+		if err != nil {
+			return nil, err
+		}
+		fmt.Println("checkpoint 2")
+		fmt.Println("received:", string(fileBuffer.Bytes()))
+	}
 	select {}
-	return nil, nil
+	// r := bytes.NewReader([]byte{})
+	//return nil , nil
 }
 
 // This method stores the file on disk then broadcasts it to all the other nodes
@@ -253,7 +267,6 @@ func (f *FileServer) Store(key string, r io.Reader) error {
 		return err
 	}
 
-	time.Sleep(time.Second * 2)
 	// send and write the file to all the peers in the list
 
 	peers := []io.Writer{}
