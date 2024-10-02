@@ -8,8 +8,6 @@ import (
 	"log"
 	"sync"
 
-	"time"
-
 	//"net/http"
 
 	"fmt"
@@ -46,8 +44,20 @@ type MessageGetFile struct {
 	Key string
 }
 
-func NewServer(fileServerOptions FileServerOpts) *FileServer {
+var (
+	//ensures type registration happens only once
+	registerOnce sync.Once
+)
 
+func registerTypes() {
+	registerOnce.Do(func() {
+		gob.Register(MessageStoreFile{})
+		gob.Register(MessageGetFile{})
+	})
+}
+func NewServer(fileServerOptions FileServerOpts) *FileServer {
+	// register types when creating a new server
+	registerTypes()
 	storeOptions := storeOpts{
 		pathTransformFunc: fileServerOptions.PathTransformFunc,
 		root:              fileServerOptions.StorageRoot,
@@ -170,7 +180,7 @@ func (f *FileServer) handleMessageGetFile(from string, msg MessageGetFile) error
 	if !ok {
 		return fmt.Errorf("peer (%s) does not exist", from)
 	}
-	n, err := io.CopyN(peer, r, 1044)
+	n, err := io.Copy(peer, r)
 	if err != nil {
 		return err
 	}
@@ -216,7 +226,6 @@ func (f *FileServer) Get(key string) (io.Reader, error) {
 
 	fmt.Printf("%s is not stored locally, fetching from the network\n", key)
 
-	// try and retrieve the file from the other nodes
 	msg := Message{
 		Payload: MessageGetFile{
 			Key: key,
@@ -227,8 +236,6 @@ func (f *FileServer) Get(key string) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	time.Sleep(time.Second * 4)
-	//	select {}
 	for _, peer := range f.peers {
 		fmt.Println("INSIDE THE LOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOP")
 		fileBuffer := new(bytes.Buffer)
@@ -285,7 +292,8 @@ func (f *FileServer) Store(key string, r io.Reader) error {
 	return nil
 }
 
+/*
 func init() {
-	gob.Register(MessageStoreFile{})
+//	gob.Register(MessageStoreFile{})
 	gob.Register(MessageGetFile{})
-}
+}*/
