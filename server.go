@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"sync"
+	"time"
 
 	//"net/http"
 
@@ -44,10 +45,9 @@ type MessageGetFile struct {
 	Key string
 }
 
-var (
-	//ensures type registration happens only once
-	registerOnce sync.Once
-)
+//ensures type registration happens only once
+
+var registerOnce sync.Once
 
 func registerTypes() {
 	registerOnce.Do(func() {
@@ -57,7 +57,7 @@ func registerTypes() {
 }
 func NewServer(fileServerOptions FileServerOpts) *FileServer {
 	// register types when creating a new server
-	registerTypes()
+	// registerTypes()
 	storeOptions := storeOpts{
 		pathTransformFunc: fileServerOptions.PathTransformFunc,
 		root:              fileServerOptions.StorageRoot,
@@ -84,7 +84,7 @@ func (f *FileServer) stream(msg *Message) error {
 	return gob.NewEncoder(mw).Encode(msg)
 }
 
-// broadcast() encodes and sends the message to all the peers
+// broadcast encodes and sends the message to all the peers
 func (f *FileServer) broadcast(msg *Message) error {
 	messageBuffer := new(bytes.Buffer)
 	if err := gob.NewEncoder(messageBuffer).Encode(msg); err != nil {
@@ -92,6 +92,12 @@ func (f *FileServer) broadcast(msg *Message) error {
 	}
 
 	for _, peer := range f.peers {
+
+		err := peer.Send([]byte{p2p.IncomingMessage})
+		if err != nil {
+			fmt.Println(err)
+		}
+
 		if err := peer.Send(messageBuffer.Bytes()); err != nil {
 			fmt.Println("peer send error=>", err)
 		}
@@ -263,7 +269,7 @@ func (f *FileServer) Store(key string, r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("bytes written=>%v\n", size)
+	fmt.Printf("bytes written to disk locally=>%v\n", size)
 
 	// broadcast a 'store file' message with the key and size of the payload
 	msg := Message{Payload: MessageStoreFile{
@@ -273,11 +279,14 @@ func (f *FileServer) Store(key string, r io.Reader) error {
 	if err := f.broadcast(&msg); err != nil {
 		return err
 	}
-
+	time.Sleep(time.Second * 3)
 	// send and write the file to all the peers in the list
 
 	peers := []io.Writer{}
 	for _, peer := range f.peers {
+		//send the peek buffer that indicates a stream is incoming
+		peer.Send([]byte{p2p.IncomingStream})
+
 		peers = append(peers, peer)
 		/*n, err := io.Copy(peer, fileBuffer)
 
@@ -292,8 +301,7 @@ func (f *FileServer) Store(key string, r io.Reader) error {
 	return nil
 }
 
-/*
 func init() {
-//	gob.Register(MessageStoreFile{})
-	gob.Register(MessageGetFile{})
-}*/
+	gob.Register(MessageStoreFile{})
+	// gob.Register(MessageGetFile{})
+}

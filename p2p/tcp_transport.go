@@ -104,9 +104,12 @@ func (tr *TCPTransport) Dial(addr string) error {
 	if err != nil {
 		return err
 	}
+	// handle the connection  in a separate go-routine
+
 	go tr.handleConnection(conn, true)
 	return nil
 }
+
 func (tr *TCPTransport) handleConnection(conn net.Conn, outbound bool) {
 	var err error
 	defer func() {
@@ -125,10 +128,12 @@ func (tr *TCPTransport) handleConnection(conn net.Conn, outbound bool) {
 
 	}
 
-	//Read loop
 	rpc := RPC{}
+	//Read loop - decodes  messages and sends them to the server via the channel
+	//TODO: lock read loop while streaming a  large message
 	for {
 		err = tr.Decoder.Decode(conn, &rpc)
+
 		if isNetConnClosedErr(err) {
 			fmt.Printf("error the connection is  closed=>%v\n", err)
 			return
@@ -138,11 +143,17 @@ func (tr *TCPTransport) handleConnection(conn net.Conn, outbound bool) {
 			fmt.Printf("tcp  read error: %v\n", err)
 			continue
 		}
+
 		rpc.From = conn.RemoteAddr().String()
-		peer.Wg.Add(1)
-		fmt.Println("...streaming")
+
+		if rpc.Stream {
+			peer.Wg.Add(1)
+			fmt.Println("... incoming stream from:", conn.RemoteAddr().String())
+			peer.Wg.Wait()
+			fmt.Println("...done streaming , resuming the normal read loop")
+			continue
+		}
+
 		tr.rpcChan <- rpc
-		peer.Wg.Wait()
-		fmt.Println("...done streaming , resuming the normal read loop")
 	}
 }
