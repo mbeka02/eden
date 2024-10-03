@@ -44,7 +44,7 @@ func NewTCPPeer(Conn net.Conn, outboundPeer bool) *TCPPeer {
 func NewTCPTransport(opts TCPTransportOpts) *TCPTransport {
 	return &TCPTransport{
 		TCPTransportOpts: opts,
-		rpcChan:          make(chan RPC),
+		rpcChan:          make(chan RPC, 1024),
 	}
 }
 
@@ -57,6 +57,11 @@ func (p *TCPPeer) Close() error {
 func (p *TCPPeer) Send(b []byte) error {
 	_, err := p.Conn.Write(b)
 	return err
+}
+
+// Addr() implements the Transpor interface , returns the addr the transport is accepting connections
+func (tr *TCPTransport) Addr() string {
+	return tr.ListenAddr
 }
 func (tr *TCPTransport) ListenAndAccept() error {
 	var err error
@@ -128,10 +133,12 @@ func (tr *TCPTransport) handleConnection(conn net.Conn, outbound bool) {
 
 	}
 
-	rpc := RPC{}
 	//Read loop - decodes  messages and sends them to the server via the channel
 	//TODO: lock read loop while streaming a  large message
 	for {
+
+		rpc := RPC{}
+
 		err = tr.Decoder.Decode(conn, &rpc)
 
 		if isNetConnClosedErr(err) {

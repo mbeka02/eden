@@ -205,7 +205,7 @@ func (f *FileServer) handleMessageStoreFile(from string, msg MessageStoreFile) e
 	if err != nil {
 		return err
 	}
-	log.Printf("Written (%d) bytes to disk for : %s  \n", n, peer.LocalAddr().String())
+	log.Printf(" [%s],Written (%d) bytes to disk   \n", f.Transport.Addr(), n)
 
 	peer.(*p2p.TCPPeer).Wg.Done()
 
@@ -279,7 +279,7 @@ func (f *FileServer) Store(key string, r io.Reader) error {
 	if err := f.broadcast(&msg); err != nil {
 		return err
 	}
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Millisecond * 500)
 	// send and write the file to all the peers in the list
 
 	peers := []io.Writer{}

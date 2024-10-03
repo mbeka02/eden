@@ -36,7 +36,11 @@ func main() {
 
 	go fileServer2.Run()
 
-	data := bytes.NewReader([]byte(`
+	//fileServer1.Store("myprivateDataKey", data)
+	time.Sleep(time.Second * 2)
+	for i := 0; i < 10; i++ {
+
+		data := bytes.NewReader([]byte(`
 	<!DOCTYPE html>
 	<html lang="en">
 	<head>
@@ -59,10 +63,10 @@ func main() {
 	</html>
 	  `))
 
-	//fileServer1.Store("myprivateDataKey", data)
-	time.Sleep(time.Second * 2)
+		fileServer2.Store("myprivateDataKey", data)
+		time.Sleep(time.Millisecond * 500)
+	}
 
-	fileServer2.Store("myprivateDataKey", data)
 	//r, err := fileServer2.Get("myprivateDataKey")
 
 	// if err != nil {
