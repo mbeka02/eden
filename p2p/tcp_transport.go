@@ -25,8 +25,8 @@ type TCPTransport struct {
 type TCPPeer struct {
 	// this is the underlying connection, in this case a TCP connection
 	net.Conn
-	//if we dial and retreive a conn => true
-	//if we accept and retreive => false
+	// if we dial and retreive a conn => true
+	// if we accept and retreive => false
 	outboundPeer bool
 	Wg           *sync.WaitGroup
 }
@@ -38,7 +38,6 @@ func NewTCPPeer(Conn net.Conn, outboundPeer bool) *TCPPeer {
 		outboundPeer,
 		wg,
 	}
-
 }
 
 func NewTCPTransport(opts TCPTransportOpts) *TCPTransport {
@@ -63,6 +62,7 @@ func (p *TCPPeer) Send(b []byte) error {
 func (tr *TCPTransport) Addr() string {
 	return tr.ListenAddr
 }
+
 func (tr *TCPTransport) ListenAndAccept() error {
 	var err error
 	tr.listener, err = net.Listen("tcp", tr.ListenAddr)
@@ -81,15 +81,14 @@ read only channel for reading the read-only
 messages received from another peer on the network
 */
 func (tr *TCPTransport) Consume() <-chan RPC {
-
 	return tr.rpcChan
-
 }
 
 // Close implements the transport interface
 func (tr *TCPTransport) Close() error {
 	return tr.listener.Close()
 }
+
 func (tr *TCPTransport) startAcceptLoop() {
 	for {
 		conn, err := tr.listener.Accept()
@@ -130,11 +129,9 @@ func (tr *TCPTransport) handleConnection(conn net.Conn, outbound bool) {
 		if err := tr.OnPeer(peer); err != nil {
 			return
 		}
-
 	}
 
-	//Read loop - decodes  messages and sends them to the server via the channel
-	//TODO: lock read loop while streaming a  large message
+	// Read loop - decodes  messages and sends them to the server via the channel
 	for {
 
 		rpc := RPC{}
@@ -155,9 +152,9 @@ func (tr *TCPTransport) handleConnection(conn net.Conn, outbound bool) {
 
 		if rpc.Stream {
 			peer.Wg.Add(1)
-			fmt.Println("... incoming stream from:", conn.RemoteAddr().String())
+			fmt.Println("... incoming  data stream from:", conn.RemoteAddr().String())
 			peer.Wg.Wait()
-			fmt.Println("...done streaming , resuming the normal read loop")
+			fmt.Println("...done streaming the data , resuming the normal read loop")
 			continue
 		}
 

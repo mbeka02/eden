@@ -13,12 +13,14 @@ import (
 
 const defaultRootFolderName = "root"
 
-type pathTransformFunc func(string) PathKey
-type storeOpts struct {
-	//root is the folder name of the root contaning all the folders and files
-	root              string
-	pathTransformFunc pathTransformFunc
-}
+type (
+	pathTransformFunc func(string) PathKey
+	storeOpts         struct {
+		// root is the folder name of the root contaning all the folders and files
+		root              string
+		pathTransformFunc pathTransformFunc
+	}
+)
 type store struct {
 	storeOpts
 }
@@ -28,7 +30,6 @@ type PathKey struct {
 }
 
 func CASTransFunc(key string) PathKey {
-
 	hash := sha1.Sum([]byte(key))
 
 	hashString := hex.EncodeToString(hash[:])
@@ -47,20 +48,18 @@ func CASTransFunc(key string) PathKey {
 
 func (pk PathKey) FullPath() string {
 	return fmt.Sprintf("%s/%s", pk.PathName, pk.Filename)
-
 }
+
 func defaultTransFunc(key string) PathKey {
 	return PathKey{
 		PathName: key,
 		Filename: key,
 	}
-
 }
 
 func newStore(opts storeOpts) *store {
 	if opts.root == "" {
 		opts.root = defaultRootFolderName
-
 	}
 	return &store{storeOpts: opts}
 }
@@ -75,12 +74,12 @@ func (s *store) writeStream(key string, r io.Reader) (int64, error) {
 
 	fullPath := pathKey.FullPath()
 	fullPathWithRoot := fmt.Sprintf("%s/%s", s.root, fullPath)
-	//create file
+	// create file
 	f, err := os.Create(fullPathWithRoot)
 	if err != nil {
 		return 0, err
 	}
-	//copy buffer content
+	// copy buffer content
 	n, err := io.Copy(f, r)
 	if err != nil {
 		return 0, err
@@ -121,7 +120,6 @@ func (s *store) Delete(key string) error {
 		fmt.Printf("deleted %s from disk\n", pathKey.Filename)
 	}()
 	return os.RemoveAll(firstPathNameWithRoot)
-
 }
 
 func (s *store) Has(key string) bool {
@@ -129,7 +127,6 @@ func (s *store) Has(key string) bool {
 	fullPathWithRoot := fmt.Sprintf("%s/%s", s.root, pathKey.FullPath())
 	_, err := os.Stat(fullPathWithRoot)
 	return !errors.Is(err, os.ErrNotExist)
-
 }
 
 // clear everything including the root folder

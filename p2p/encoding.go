@@ -10,17 +10,14 @@ type Decoder interface {
 	Decode(io.Reader, *RPC) error
 }
 
-type GOBDecoder struct {
-}
-type DefaultDecoder struct {
-}
+type GOBDecoder struct{}
+type DefaultDecoder struct{}
 
 func (dec GOBDecoder) Decode(r io.Reader, m *RPC) error {
 	return gob.NewDecoder(r).Decode(m)
 }
 
 func (dec DefaultDecoder) Decode(r io.Reader, m *RPC) error {
-
 	peekBuff := make([]byte, 1)
 	if _, err := r.Read(peekBuff); err != nil {
 		return fmt.Errorf("peeking error: %v\n", err)

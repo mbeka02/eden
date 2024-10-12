@@ -26,6 +26,7 @@ func makeServer(listenAddr string, nodes ...string) *FileServer {
 	TCPTransport.OnPeer = server.OnPeer
 	return server
 }
+
 func main() {
 	fileServer1 := makeServer(":3000", "")
 	fileServer2 := makeServer(":4000", "127.0.0.1:3000")
@@ -36,7 +37,7 @@ func main() {
 
 	go fileServer2.Run()
 
-	//fileServer1.Store("myprivateDataKey", data)
+	// fileServer1.Store("myprivateDataKey", data)
 	time.Sleep(time.Second * 2)
 	for i := 0; i < 10; i++ {
 
@@ -67,7 +68,7 @@ func main() {
 		time.Sleep(time.Millisecond * 500)
 	}
 
-	//r, err := fileServer2.Get("myprivateDataKey")
+	// r, err := fileServer2.Get("myprivateDataKey")
 
 	// if err != nil {
 	// 	log.Fatal(err)
