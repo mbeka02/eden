@@ -164,8 +164,9 @@ func (f *FileServer) handleMessage(from string, msg *Message) error {
 
 func (f *FileServer) handleMessageGetFile(from string, msg MessageGetFile) error {
 	if !f.store.Has(msg.Key) {
-		return fmt.Errorf(" need to serve file %s but it  does not exist on disk\n", msg.Key)
+		return fmt.Errorf(" [%s] needs to serve file %s but it  does not exist on disk\n", f.Transport.Addr(), msg.Key)
 	}
+	fmt.Printf(" [%s] has not stored %s locally, serving it over the network.....\n", f.Transport.Addr(), msg.Key)
 
 	r, err := f.store.Read(msg.Key)
 	if err != nil {
@@ -176,11 +177,12 @@ func (f *FileServer) handleMessageGetFile(from string, msg MessageGetFile) error
 	if !ok {
 		return fmt.Errorf("peer (%s) does not exist", from)
 	}
+	peer.Send([]byte{p2p.IncomingStream})
 	n, err := io.Copy(peer, r)
 	if err != nil {
 		return err
 	}
-	log.Printf("written (%d) bytes over the network to %s", n, from)
+	log.Printf("[%s] written (%d) bytes over the network to %s\n", f.Transport.Addr(), n, from)
 	return nil
 }
 
@@ -215,10 +217,12 @@ func (f *FileServer) OnPeer(p p2p.Peer) error {
 
 func (f *FileServer) Get(key string) (io.Reader, error) {
 	if f.store.Has(key) {
+
+		fmt.Printf("%s has been found on the local disk , serving it now .....\n ", key)
 		return f.store.Read(key)
 	}
 
-	fmt.Printf("%s is not stored locally, fetching from the network\n", key)
+	fmt.Printf(" [%s] has not stored %s locally, fetching it from the network.....\n", f.Transport.Addr(), key)
 
 	msg := Message{
 		Payload: MessageGetFile{
@@ -230,17 +234,23 @@ func (f *FileServer) Get(key string) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
+	// time.Sleep(time.Millisecond * 5)
 	for _, peer := range f.peers {
-		fileBuffer := new(bytes.Buffer)
-		_, err := io.Copy(fileBuffer, peer)
+		// fileBuffer := new(bytes.Buffer)
+		// n, err := io.CopyN(fileBuffer, peer, 11)
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// TODO : Get the file size dynamically instead of hard coding it
+		n, err := f.store.Write(key, io.LimitReader(peer, 11))
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("received:", string(fileBuffer.Bytes()))
+		fmt.Printf(" [%s] received:%d bytes over the network from:[%s]\n", f.Transport.Addr(), n, peer.RemoteAddr().String())
+		peer.CloseStream()
 	}
-	select {}
 	// r := bytes.NewReader([]byte{})
-	// return nil , nil
+	return f.store.Read(key)
 }
 
 // This method stores the file on disk then broadcasts it to all the other nodes

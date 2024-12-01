@@ -1,8 +1,8 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"time"
 
@@ -40,24 +40,19 @@ func main() {
 
 	// fileServer1.Store("myprivateDataKey", data)
 	time.Sleep(time.Second * 2)
-	for i := 0; i < 10; i++ {
-
-		data := bytes.NewReader([]byte("random data"))
-
-		fileServer2.Store(fmt.Sprintf("myprivateDataKey_%d", i), data)
-		time.Sleep(time.Millisecond * 500)
-	}
-
-	// r, err := fileServer2.Get("myprivateDataKey")
-
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	// b, err := io.ReadAll(r)
 	//
-	// if err != nil {
-	// 	fmt.Println(err)
-	// }
-	// fmt.Println("buffer content=>", string(b))
-	select {}
+	// data := bytes.NewReader([]byte("random data"))
+	//
+	// fileServer2.Store("coolPicture.jpg", data)
+	// time.Sleep(time.Millisecond * 500)
+
+	r, err := fileServer2.Get("coolPicture.jpg")
+	if err != nil {
+		log.Fatal(err)
+	}
+	b, err := io.ReadAll(r)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("buffer content=>", string(b))
 }
