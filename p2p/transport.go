@@ -8,6 +8,7 @@ type Peer interface {
 	// RemoteAddr() net.Addr
 	// Close() error
 	net.Conn
+	CloseStream()
 }
 
 /*

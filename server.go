@@ -20,7 +20,7 @@ type FileServerOpts struct {
 	BootStrapNodes    []string
 }
 type FileServer struct {
-	FileServerOpts               // file server config options
+	FileServerOpts               // file server configuration options
 	store          *store        // manages file storage on disk
 	quitChannel    chan struct{} // signal channel
 
@@ -196,9 +196,7 @@ func (f *FileServer) handleMessageStoreFile(from string, msg MessageStoreFile) e
 		return err
 	}
 	log.Printf(" [%s],Written (%d) bytes to disk   \n", f.Transport.Addr(), n)
-
-	peer.(*p2p.TCPPeer).Wg.Done()
-
+	peer.CloseStream()
 	return nil
 }
 
@@ -283,5 +281,5 @@ func (f *FileServer) Store(key string, r io.Reader) error {
 
 func init() {
 	gob.Register(MessageStoreFile{})
-	// gob.Register(MessageGetFile{})
+	gob.Register(MessageGetFile{})
 }

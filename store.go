@@ -21,6 +21,7 @@ type (
 		pathTransformFunc pathTransformFunc
 	}
 )
+
 type store struct {
 	storeOpts
 }

@@ -28,7 +28,7 @@ type TCPPeer struct {
 	// if we dial and retreive a conn => true
 	// if we accept and retreive => false
 	outboundPeer bool
-	Wg           *sync.WaitGroup
+	wg           *sync.WaitGroup
 }
 
 func NewTCPPeer(Conn net.Conn, outboundPeer bool) *TCPPeer {
@@ -52,13 +52,17 @@ func (p *TCPPeer) Close() error {
 	return p.Conn.Close()
 }
 
+func (p *TCPPeer) CloseStream() {
+	p.wg.Done()
+}
+
 // Send implements the Peer interface
 func (p *TCPPeer) Send(b []byte) error {
 	_, err := p.Conn.Write(b)
 	return err
 }
 
-// Addr() implements the Transpor interface , returns the addr the transport is accepting connections
+// Addr() implements the Transport interface , returns the addr the transport is accepting connections
 func (tr *TCPTransport) Addr() string {
 	return tr.ListenAddr
 }
@@ -151,9 +155,9 @@ func (tr *TCPTransport) handleConnection(conn net.Conn, outbound bool) {
 		rpc.From = conn.RemoteAddr().String()
 
 		if rpc.Stream {
-			peer.Wg.Add(1)
+			peer.wg.Add(1)
 			fmt.Println("... incoming  data stream from:", conn.RemoteAddr().String())
-			peer.Wg.Wait()
+			peer.wg.Wait()
 			fmt.Println("...done streaming the data , resuming the normal read loop")
 			continue
 		}
