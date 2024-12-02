@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/gob"
 	"fmt"
 	"io"
@@ -13,10 +14,9 @@ import (
 )
 
 type FileServerOpts struct {
-	// ListenAddr        string
 	StorageRoot       string
 	PathTransformFunc pathTransformFunc
-	Transport         p2p.Transport
+	Transport         p2p.Transport // TCP
 	BootStrapNodes    []string
 }
 type FileServer struct {
@@ -177,11 +177,19 @@ func (f *FileServer) handleMessageGetFile(from string, msg MessageGetFile) error
 	if !ok {
 		return fmt.Errorf("peer (%s) does not exist", from)
 	}
+
+	// First send teh incoming stream byte to the peer
 	peer.Send([]byte{p2p.IncomingStream})
+	// TODO : Get the file size dynamically instead of hard coding it
+
+	var fileSize int64 = 11
+	binary.Write(peer, binary.LittleEndian, fileSize)
+
 	n, err := io.Copy(peer, r)
 	if err != nil {
 		return err
 	}
+
 	log.Printf("[%s] written (%d) bytes over the network to %s\n", f.Transport.Addr(), n, from)
 	return nil
 }
@@ -234,15 +242,11 @@ func (f *FileServer) Get(key string) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	// time.Sleep(time.Millisecond * 5)
 	for _, peer := range f.peers {
-		// fileBuffer := new(bytes.Buffer)
-		// n, err := io.CopyN(fileBuffer, peer, 11)
-		// if err != nil {
-		// 	return nil, err
-		// }
-		// TODO : Get the file size dynamically instead of hard coding it
-		n, err := f.store.Write(key, io.LimitReader(peer, 11))
+		// Get the file size to limit the number of bytes read over the connection
+		var fileSize int64
+		binary.Read(peer, binary.LittleEndian, &fileSize)
+		n, err := f.store.Write(key, io.LimitReader(peer, fileSize))
 		if err != nil {
 			return nil, err
 		}

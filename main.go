@@ -40,7 +40,7 @@ func main() {
 
 	// fileServer1.Store("myprivateDataKey", data)
 	time.Sleep(time.Second * 2)
-	//
+
 	// data := bytes.NewReader([]byte("random data"))
 	//
 	// fileServer2.Store("coolPicture.jpg", data)
