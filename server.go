@@ -178,7 +178,7 @@ func (f *FileServer) handleMessageGetFile(from string, msg MessageGetFile) error
 		return fmt.Errorf("peer (%s) does not exist", from)
 	}
 
-	// First send teh incoming stream byte to the peer
+	// First send the incoming stream byte to the peer
 	peer.Send([]byte{p2p.IncomingStream})
 	// TODO : Get the file size dynamically instead of hard coding it
 
