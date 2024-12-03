@@ -168,7 +168,7 @@ func (f *FileServer) handleMessageGetFile(from string, msg MessageGetFile) error
 	}
 	fmt.Printf(" [%s] has not stored %s locally, serving it over the network.....\n", f.Transport.Addr(), msg.Key)
 
-	r, err := f.store.Read(msg.Key)
+	bytesWritten, r, err := f.store.Read(msg.Key)
 	if err != nil {
 		return err
 	}
@@ -180,9 +180,8 @@ func (f *FileServer) handleMessageGetFile(from string, msg MessageGetFile) error
 
 	// First send the incoming stream byte to the peer
 	peer.Send([]byte{p2p.IncomingStream})
-	// TODO : Get the file size dynamically instead of hard coding it
-
-	var fileSize int64 = 11
+	// get teh file size from the store Read() method
+	var fileSize int64 = bytesWritten
 	binary.Write(peer, binary.LittleEndian, fileSize)
 
 	n, err := io.Copy(peer, r)
@@ -227,7 +226,8 @@ func (f *FileServer) Get(key string) (io.Reader, error) {
 	if f.store.Has(key) {
 
 		fmt.Printf("%s has been found on the local disk , serving it now .....\n ", key)
-		return f.store.Read(key)
+		_, r, err := f.store.Read(key)
+		return r, err
 	}
 
 	fmt.Printf(" [%s] has not stored %s locally, fetching it from the network.....\n", f.Transport.Addr(), key)
@@ -254,7 +254,8 @@ func (f *FileServer) Get(key string) (io.Reader, error) {
 		peer.CloseStream()
 	}
 	// r := bytes.NewReader([]byte{})
-	return f.store.Read(key)
+	_, r, err := f.store.Read(key)
+	return r, err
 }
 
 // This method stores the file on disk then broadcasts it to all the other nodes

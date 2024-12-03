@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"errors"
@@ -88,23 +87,33 @@ func (s *store) writeStream(key string, r io.Reader) (int64, error) {
 	return n, nil
 }
 
-func (s *store) readStream(key string) (io.ReadCloser, error) {
+func (s *store) readStream(key string) (int64, io.ReadCloser, error) {
 	pathKey := s.pathTransformFunc(key)
 	fullPathWithRoot := fmt.Sprintf("%s/%s", s.root, pathKey.FullPath())
-
-	return os.Open(fullPathWithRoot)
+	fileInfo, err := os.Stat(fullPathWithRoot)
+	if err != nil {
+		return 0, nil, err
+	}
+	fmt.Printf("file size -> %v", fileInfo.Size())
+	file, err := os.Open(fullPathWithRoot)
+	if err != nil {
+		return 0, nil, err
+	}
+	return fileInfo.Size(), file, nil
 }
 
 // Read() is a wrapper fn for readStream
-func (s *store) Read(key string) (io.Reader, error) {
-	f, err := s.readStream(key)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	buff := new(bytes.Buffer)
-	_, err = io.Copy(buff, f)
-	return buff, err
+
+// FIXME: Refactor this
+func (s *store) Read(key string) (int64, io.Reader, error) {
+	return s.readStream(key)
+	// if err != nil {
+	// 	return 0, nil, err
+	// }
+	// defer file.Close()
+	// buff := new(bytes.Buffer)
+	// n, err := io.Copy(buff, f)
+	// return file, buff, err
 }
 
 // Write() is a wrapper fn for writeStream
